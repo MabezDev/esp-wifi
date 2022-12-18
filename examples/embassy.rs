@@ -152,11 +152,11 @@ fn main() -> ! {
     let device = WifiDevice::new();
 
     let config = embassy_net::ConfigStrategy::Dhcp;
-    let config = embassy_net::ConfigStrategy::Static(embassy_net::Config {
-       address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 0, 60), 24),
-       dns_servers: heapless::Vec::new(),
-       gateway: Some(Ipv4Address::new(192, 168, 0, 1)),
-    });
+    // let config = embassy_net::ConfigStrategy::Static(embassy_net::Config {
+    //    address: Ipv4Cidr::new(Ipv4Address::new(192, 168, 0, 60), 24),
+    //    dns_servers: heapless::Vec::new(),
+    //    gateway: Some(Ipv4Address::new(192, 168, 0, 1)),
+    // });
     let seed = 1234; // very random, very secure seed
 
     // Init network stack
@@ -209,7 +209,7 @@ async fn task(stack: &'static Stack<WifiDevice>) {
             let r = socket.write_all(b"GET / HTTP/1.0\r\nHost: 192.168.0.24\r\n\r\n").await;
             if let Err(e) = r {
                 println!("write error: {:?}", e);
-                return;
+                break;
             }
             let n = match socket.read(&mut buf).await {
                 Ok(0) => {
