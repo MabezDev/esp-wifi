@@ -479,6 +479,10 @@ unsafe extern "C" fn recv_cb(
             let packet = DataFrame::from_bytes(src);
             queue.enqueue(packet);
             esp_wifi_internal_free_rx_buffer(eb);
+
+            #[cfg(feature = "embassy")]
+            embassy_impl::WAKER.wake();
+
             0
         } else {
             1
@@ -697,6 +701,9 @@ impl TxToken for WifiTxToken {
 
 pub fn send_data_if_needed() {
     critical_section::with(|cs| {
+        #[cfg(feature = "embassy")]
+        embassy_impl::WAKER.wake();
+
         let mut queue = DATA_QUEUE_TX.borrow_ref_mut(cs);
 
         while let Some(packet) = queue.dequeue() {
@@ -768,5 +775,117 @@ fn dump_packet_info(buffer: &[u8]) {
         }
         smoltcp::wire::EthernetProtocol::Ipv6 => {}
         smoltcp::wire::EthernetProtocol::Unknown(_) => {}
+    }
+}
+
+#[cfg(feature = "embassy")]
+pub(crate) mod embassy_impl {
+    use super::*;
+    use embassy_net::device::{Device, DeviceCapabilities, RxToken, TxToken};
+    use embassy_sync::waitqueue::AtomicWaker;
+
+    pub(crate) static WAKER: AtomicWaker = AtomicWaker::new();
+
+    impl RxToken for WifiRxToken {
+        fn consume<R, F>(self, f: F) -> R
+        where
+            F: FnOnce(&mut [u8]) -> R,
+        {
+            critical_section::with(|cs| {
+                let mut queue = DATA_QUEUE_RX.borrow_ref_mut(cs);
+
+                if let Some(mut data) = queue.dequeue() {
+                    let buffer =
+                        unsafe { core::slice::from_raw_parts(&data.data as *const u8, data.len) };
+                    dump_packet_info(&buffer);
+                    f(&mut data.data[..])
+                } else {
+                    panic!("unreachable probs")
+                }
+            })
+        }
+    }
+
+    impl TxToken for WifiTxToken {
+        fn consume<R, F>(self, len: usize, f: F) -> R
+        where
+            F: FnOnce(&mut [u8]) -> R,
+        {
+            let res = critical_section::with(|cs| {
+                let mut queue = DATA_QUEUE_TX.borrow_ref_mut(cs);
+
+                // if queue.is_full() {
+                //     Err(smoltcp::Error::Exhausted)
+                // } else {
+                let mut packet = DataFrame::new();
+                packet.len = len;
+                let res = f(&mut packet.data[..len]);
+                let success = queue.enqueue(packet);
+                if !success {
+                    panic!("exausted")
+                }
+
+                res
+                // }
+            });
+
+            send_data_if_needed();
+            res
+        }
+    }
+
+    impl Device for WifiDevice {
+        type RxToken<'a> = WifiRxToken
+    where
+        Self: 'a;
+
+        type TxToken<'a> = WifiTxToken
+    where
+        Self: 'a;
+
+        fn receive(
+            &mut self,
+            cx: &mut core::task::Context,
+        ) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
+            WAKER.register(cx.waker());
+            critical_section::with(|cs| {
+                let rx = DATA_QUEUE_RX.borrow_ref_mut(cs);
+                let tx = DATA_QUEUE_TX.borrow_ref_mut(cs);
+                if !rx.is_empty() && !tx.is_full() {
+                    Some((WifiRxToken {}, WifiTxToken {}))
+                } else {
+                    None
+                }
+            })
+        }
+
+        fn transmit(&mut self, cx: &mut core::task::Context) -> Option<Self::TxToken<'_>> {
+            WAKER.register(cx.waker());
+            critical_section::with(|cs| {
+                let tx = DATA_QUEUE_TX.borrow_ref_mut(cs);
+                if !tx.is_full() {
+                    Some(WifiTxToken {})
+                } else {
+                    None
+                }
+            })
+        }
+
+        fn link_state(&mut self, cx: &mut core::task::Context) -> embassy_net::device::LinkState {
+            embassy_net::device::LinkState::Up // TODO figure out
+        }
+
+        fn capabilities(&self) -> DeviceCapabilities {
+            let mut caps = DeviceCapabilities::default();
+            caps.max_transmission_unit = 1514;
+            caps.max_burst_size = Some(1);
+            caps
+        }
+
+        fn ethernet_address(&self) -> [u8; 6] {
+            // TODO replace with configuration
+            // [0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xEF]
+            [0x7C, 0xDF, 0xA1, 0x86, 0xD8, 0x9C]
+        }
     }
 }

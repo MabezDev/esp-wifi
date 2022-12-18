@@ -26,9 +26,11 @@ log = "0.4.17"
 embedded-svc = { version = "0.23.1", default-features = false, features = [], optional = true }
 enumset = { version = "1", default-features = false, optional = true }
 linked_list_allocator = { version = "0.10.3", default-features = false, features = ["const_mut_refs"] }
-embedded-io = "0.3.1"
+embedded-io = { version = "0.4", features = ["async"] }
 fugit = "0.3.6"
 heapless = { version = "0.7.14", default-features = false }
+embassy-net = { git = "https://github.com/embassy-rs/embassy", features = ["nightly", "tcp", "dhcpv4", "medium-ethernet"] }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy" }
 
 [build-dependencies]
 riscv-target = { version = "0.1.2", optional = true }
@@ -36,6 +38,9 @@ riscv-target = { version = "0.1.2", optional = true }
 [dev-dependencies]
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps" }
 bleps-macros = { git = "https://github.com/bjoernQ/bleps", package = "bleps-macros" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", features = ["nightly", "integrated-timers"] }
+static_cell = "1.0"
 
 [target.xtensa-esp32-none-elf.dev-dependencies]
 esp-println = { version = "0.3.1", features = [ "esp32", "log" ] }
@@ -68,3 +73,4 @@ embedded-svc = [ "dep:enumset", "dep:embedded-svc", "utils" ]
 wifi = []
 ble = [ "esp32-hal?/bluetooth" ]
 phy_enable_usb = []
+embassy = ["esp32c3-hal?/embassy"]
