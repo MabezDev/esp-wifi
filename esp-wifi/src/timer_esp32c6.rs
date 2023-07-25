@@ -5,6 +5,7 @@ use esp32c6 as pac;
 use esp32c6_hal as hal;
 use esp32c6_hal::prelude::*;
 use esp32c6_hal::trapframe::TrapFrame;
+use esp32c6_hal::systimer::SystemTimer;
 use hal::peripherals::Interrupt;
 use hal::systimer::{Alarm, Periodic, Target};
 
@@ -18,7 +19,7 @@ pub const COUNTER_BIT_MASK: u64 = 0x000F_FFFF_FFFF_FFFF;
 #[cfg(debug_assertions)]
 const TIMER_DELAY: fugit::HertzU32 = fugit::HertzU32::from_raw(50);
 #[cfg(not(debug_assertions))]
-const TIMER_DELAY: fugit::HertzU32 = fugit::HertzU32::from_raw(100);
+const TIMER_DELAY: fugit::HertzU32 = fugit::HertzU32::from_raw(750);
 
 static ALARM0: Mutex<RefCell<Option<Alarm<Periodic, 0>>>> = Mutex::new(RefCell::new(None));
 
@@ -216,22 +217,5 @@ pub fn yield_task() {
 /// Current systimer count value
 /// A tick is 1 / 16_000_000 seconds
 pub fn get_systimer_count() -> u64 {
-    critical_section::with(|_| unsafe {
-        let systimer = &(*pac::SYSTIMER::ptr());
-
-        systimer.unit0_op.write(|w| w.bits(1 << 30));
-
-        // wait for value available
-        loop {
-            let valid = (systimer.unit0_op.read().bits() >> 29) & 1;
-            if valid != 0 {
-                break;
-            }
-        }
-
-        let value_lo = systimer.unit0_value_lo.read().bits() as u64;
-        let value_hi = (systimer.unit0_value_hi.read().bits() as u64) << 32;
-
-        (value_lo | value_hi) as u64
-    })
+    SystemTimer::now()
 }

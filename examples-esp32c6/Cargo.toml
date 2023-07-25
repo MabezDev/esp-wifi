@@ -18,10 +18,11 @@ log.workspace = true
 heapless.workspace = true
 embassy-net = { workspace = true, optional = true }
 
-esp32c6-hal.workspace = true
+# esp32c6-hal.workspace = true
+esp32c6-hal = { path = "/home/mabez/development/rust/embedded/hal/esp-hal/esp32c6-hal" }
 examples-util = { path = "../examples-util", features = ["esp32c6"] }
-esp-println = { workspace = true, features = [ "esp32c6" ] }
-esp-backtrace = { workspace = true, features = ["esp32c6"] }
+esp-println = { version = "0.5.0", default-features = false, features = ["log", "esp32c6", "rtt"] }
+esp-backtrace = { version = "0.7.0", features = ["panic-handler", "exception-handler", "print-rtt", "esp32c6"] }
 esp-wifi = { path = "../esp-wifi", features = ["esp32c6"] }
 
 [features]

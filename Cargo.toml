@@ -17,9 +17,9 @@ exclude = [
 resolver = "2"
 
 [profile.release]
-# Explicitly disable LTO which the Xtensa codegen backend has issues
-lto = "off"
+codegen-units = 1
 opt-level = 3
+debug = true
 
 [profile.dev]
 # Explicitly disable LTO which the Xtensa codegen backend has issues
