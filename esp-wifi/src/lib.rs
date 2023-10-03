@@ -114,20 +114,20 @@ const DEFAULT_TICK_RATE_HZ: u32 = 50;
 
 #[allow(unused)]
 #[cfg(not(debug_assertions))]
-const DEFAULT_TICK_RATE_HZ: u32 = 100;
+const DEFAULT_TICK_RATE_HZ: u32 = 1000;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[toml_cfg::toml_config]
 /// Tunable parameters for the WiFi driver
 struct Config {
-    #[default(5)]
+    #[default(20)]
     rx_queue_size: usize,
-    #[default(3)]
+    #[default(5)]
     tx_queue_size: usize,
-    #[default(10)]
-    static_rx_buf_num: usize,
     #[default(32)]
+    static_rx_buf_num: usize,
+    #[default(16)]
     dynamic_rx_buf_num: usize,
     #[default(0)]
     static_tx_buf_num: usize,
@@ -135,13 +135,13 @@ struct Config {
     dynamic_tx_buf_num: usize,
     #[default(0)]
     ampdu_rx_enable: usize,
-    #[default(0)]
-    ampdu_tx_enable: usize,
-    #[default(0)]
-    amsdu_tx_enable: usize,
-    #[default(6)]
-    rx_ba_win: usize,
     #[default(1)]
+    ampdu_tx_enable: usize,
+    #[default(1)]
+    amsdu_tx_enable: usize,
+    #[default(32)]
+    rx_ba_win: usize,
+    #[default(8)]
     max_burst_size: usize,
     #[default("CN")]
     country_code: &'static str,

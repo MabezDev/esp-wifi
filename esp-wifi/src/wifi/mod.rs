@@ -944,7 +944,6 @@ impl<'d> Device for WifiDevice<'d> {
         if esp_wifi_can_send() {
             Some(WifiTxToken::default())
         } else {
-            warn!("no Tx token available");
             None
         }
     }
@@ -985,18 +984,17 @@ fn rx_token_consume<R, F>(f: F) -> R
 where
     F: FnOnce(&mut [u8]) -> R,
 {
-    critical_section::with(|cs| {
+    let mut data = critical_section::with(|cs| {
         let mut queue = DATA_QUEUE_RX.borrow_ref_mut(cs);
-
-        let mut data = unwrap!(
+        unwrap!(
             queue.dequeue(),
             "unreachable: transmit()/receive() ensures there is a packet to process"
-        );
-        let buffer = data.as_slice_mut();
-        dump_packet_info(&buffer);
-        let res = f(buffer);
-        res
-    })
+        )
+    });
+    let buffer = data.as_slice_mut();
+    dump_packet_info(&buffer);
+    let res = f(buffer);
+    res
 }
 
 fn tx_token_consume<R, F>(len: usize, f: F) -> R
@@ -1310,22 +1308,22 @@ pub(crate) mod embassy {
             &mut self,
             cx: &mut core::task::Context,
         ) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
-            RECEIVE_WAKER.register(cx.waker());
             critical_section::with(|cs| {
                 let rx = DATA_QUEUE_RX.borrow_ref_mut(cs);
                 if !rx.is_empty() && esp_wifi_can_send() {
                     Some((WifiRxToken::default(), WifiTxToken::default()))
                 } else {
+                    RECEIVE_WAKER.register(cx.waker());
                     None
                 }
             })
         }
 
         fn transmit(&mut self, cx: &mut core::task::Context) -> Option<Self::TxToken<'_>> {
-            TRANSMIT_WAKER.register(cx.waker());
             if esp_wifi_can_send() {
                 Some(WifiTxToken::default())
             } else {
+                TRANSMIT_WAKER.register(cx.waker());
                 None
             }
         }

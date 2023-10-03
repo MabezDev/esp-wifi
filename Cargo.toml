@@ -12,6 +12,7 @@ members = [
 ]
 exclude = [
     "extras/esp-wifishark",
+    "extras/bench-server",
 ]
 resolver = "2"
 
@@ -19,7 +20,7 @@ resolver = "2"
 # Explicitly disable LTO which the Xtensa codegen backend has issues
 lto = "off"
 opt-level = 3
-debug = true
+debug = 2
 
 [profile.dev]
 # Explicitly disable LTO which the Xtensa codegen backend has issues
