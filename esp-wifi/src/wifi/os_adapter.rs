@@ -25,6 +25,8 @@ use crate::{
     },
     hal::system::RadioClockController,
     hal::system::RadioPeripherals,
+    hal::interrupt,
+    hal::peripherals::Interrupt,
     memory_fence::memory_fence,
     timer::yield_task,
 };
@@ -68,7 +70,7 @@ pub unsafe extern "C" fn env_is_chip() -> bool {
  *
  ****************************************************************************/
 pub unsafe extern "C" fn set_intr(cpu_no: i32, intr_source: u32, intr_num: u32, intr_prio: i32) {
-    trace!(
+    info!(
         "set_intr {} {} {} {}",
         cpu_no,
         intr_source,
@@ -120,7 +122,7 @@ pub unsafe extern "C" fn set_isr(
     f: *mut crate::binary::c_types::c_void,
     arg: *mut crate::binary::c_types::c_void,
 ) {
-    trace!("set_isr - interrupt {} function {:?} arg {:?}", n, f, arg);
+    info!("set_isr - interrupt {} function {:?} arg {:?}", n, f, arg);
 
     match n {
         0 => {
@@ -131,6 +133,15 @@ pub unsafe extern "C" fn set_isr(
         }
         _ => panic!("set_isr - unsupported interrupt number {}", n),
     }
+    // enable the interrupts once the ISR has been set
+    unwrap!(interrupt::enable(
+        Interrupt::WIFI_MAC,
+        interrupt::Priority::Priority1
+    ));
+    unwrap!(interrupt::enable(
+        Interrupt::WIFI_PWR,
+        interrupt::Priority::Priority1
+    ));
 }
 
 /****************************************************************************
@@ -147,7 +158,7 @@ pub unsafe extern "C" fn set_isr(
  *
  ****************************************************************************/
 pub unsafe extern "C" fn ints_on(mask: u32) {
-    trace!("chip_ints_on {:x}", mask);
+    info!("chip_ints_on {:x}", mask);
 
     crate::wifi::os_adapter::os_adapter_chip_specific::chip_ints_on(mask);
 }
@@ -166,7 +177,7 @@ pub unsafe extern "C" fn ints_on(mask: u32) {
  *
  ****************************************************************************/
 pub unsafe extern "C" fn ints_off(mask: u32) {
-    trace!("chip_ints_off {:x}", mask);
+    info!("chip_ints_off {:x}", mask);
 
     crate::wifi::os_adapter::os_adapter_chip_specific::chip_ints_off(mask);
 }

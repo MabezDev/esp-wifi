@@ -5,18 +5,6 @@ use crate::{
 };
 
 pub fn setup_radio_isr() {
-    #[cfg(feature = "wifi")]
-    {
-        unwrap!(interrupt::enable(
-            Interrupt::WIFI_MAC,
-            interrupt::Priority::Priority1
-        ));
-        unwrap!(interrupt::enable(
-            Interrupt::WIFI_PWR,
-            interrupt::Priority::Priority1
-        ));
-    }
-
     #[cfg(feature = "ble")]
     {
         unwrap!(interrupt::enable(

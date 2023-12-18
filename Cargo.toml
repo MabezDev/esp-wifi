@@ -48,8 +48,8 @@ embassy-net = { version = "0.2.1", features = ["tcp", "udp", "dhcpv4", "medium-e
 bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "0db8fcb", features = ["macros"] }
 embassy-executor = { version = "0.4.0", package = "embassy-executor", features = ["nightly", "integrated-timers"] }
 embassy-time = { version = "0.2.0" }
-esp-println = { version = "0.7.0" }
-esp-backtrace = { version = "0.9.0", features = ["panic-handler", "exception-handler", "print-uart"] }
+esp-println = { version = "0.7.0", default-features = false, features = ["jtag_serial"] }
+esp-backtrace = { version = "0.9.0", features = ["panic-handler", "exception-handler", "print-jtag-serial"] }
 embedded-hal-async = { version = "1.0.0-rc.2" }
 embedded-io-async = { version = "0.6.0" }
 

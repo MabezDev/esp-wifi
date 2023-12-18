@@ -7,18 +7,6 @@ use crate::{
 use crate::hal::peripherals;
 
 pub fn setup_radio_isr() {
-    #[cfg(feature = "wifi")]
-    {
-        unwrap!(interrupt::enable(
-            Interrupt::WIFI_MAC,
-            interrupt::Priority::Priority1
-        ));
-        unwrap!(interrupt::enable(
-            Interrupt::WIFI_PWR,
-            interrupt::Priority::Priority1
-        ));
-    }
-
     // make sure to disable WIFI_BB/MODEM_PERI_TIMEOUT by mapping it to CPU interrupt 31 which is masked by default
     // for some reason for this interrupt, mapping it to 0 doesn't deactivate it
     let interrupt_core0 = unsafe { &*peripherals::INTERRUPT_CORE0::PTR };
@@ -28,6 +16,8 @@ pub fn setup_radio_isr() {
     interrupt_core0
         .modem_peri_timeout_intr_map()
         .write(|w| w.modem_peri_timeout_intr_map().variant(31));
+    // interrupt::disable(crate::hal::get_core(), Interrupt::WIFI_BB);
+    // interrupt::disable(crate::hal::get_core(), Interrupt::MODEM_PERI_TIMEOUT);
 
     #[cfg(feature = "ble")]
     {
